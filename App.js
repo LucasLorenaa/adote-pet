@@ -83,6 +83,26 @@ const formatBirthDate = (value) => {
   return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2, 4)}/${digitsOnly.slice(4)}`;
 };
 
+const formatCpf = (value) => {
+  const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
+
+  if (digitsOnly.length <= 3) {
+    return digitsOnly;
+  }
+
+  if (digitsOnly.length <= 6) {
+    return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3)}`;
+  }
+
+  if (digitsOnly.length <= 9) {
+    return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3, 6)}.${digitsOnly.slice(6)}`;
+  }
+
+  return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3, 6)}.${digitsOnly.slice(6, 9)}-${digitsOnly.slice(9)}`;
+};
+
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
 const isStrongPassword = (password) => /^(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}).+$/.test(password);
 
 export default function App() {
@@ -94,8 +114,10 @@ export default function App() {
   const [screen, setScreen] = useState('login');
   const [selectedPet, setSelectedPet] = useState(PETS[0]);
   const [registeredUser, setRegisteredUser] = useState(null);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
   const [signup, setSignup] = useState({
     name: '',
+    cpf: '',
     email: '',
     birthDate: '',
     password: '',
@@ -128,11 +150,38 @@ export default function App() {
     });
   }, [filters, favorites]);
 
-  const handleSignup = () => {
-    const { name, email, birthDate, password } = signup;
+  const emailError =
+    !signup.email.trim()
+      ? ''
+      : !isValidEmail(signup.email)
+        ? 'Informe um e-mail válido.'
+        : registeredUsers.some((user) => user.email === signup.email.trim().toLowerCase())
+          ? 'Este e-mail já está cadastrado.'
+          : '';
 
-    if (!name || !email || !birthDate || !password) {
+  const cpfError =
+    !signup.cpf.trim()
+      ? ''
+      : signup.cpf.replace(/\D/g, '').length !== 11
+        ? 'CPF inválido. Informe 11 dígitos.'
+        : registeredUsers.some((user) => user.cpf === signup.cpf.replace(/\D/g, ''))
+          ? 'Este CPF já está cadastrado.'
+          : '';
+
+  const hasSignupErrors = Boolean(emailError || cpfError);
+
+  const handleSignup = () => {
+    const { name, cpf, email, birthDate, password } = signup;
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCpf = cpf.replace(/\D/g, '');
+
+    if (!name || !cpf || !email || !birthDate || !password) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os dados do cadastro.');
+      return;
+    }
+
+    if (normalizedCpf.length !== 11) {
+      Alert.alert('CPF inválido', 'Informe um CPF com 11 dígitos.');
       return;
     }
 
@@ -144,18 +193,35 @@ export default function App() {
       return;
     }
 
+    if (registeredUsers.some((user) => user.email === normalizedEmail)) {
+      Alert.alert('E-mail já cadastrado', 'Este e-mail já está em uso por outra conta.');
+      return;
+    }
+
+    if (registeredUsers.some((user) => user.cpf === normalizedCpf)) {
+      Alert.alert('CPF já cadastrado', 'Este CPF já está em uso por outra conta.');
+      return;
+    }
+
+    if (hasSignupErrors) {
+      Alert.alert('Dados inválidos', 'Corrija os campos de e-mail e CPF antes de continuar.');
+      return;
+    }
+
     const newUser = {
       name,
-      email: email.trim().toLowerCase(),
+      cpf: normalizedCpf,
+      email: normalizedEmail,
       birthDate,
       password,
     };
 
+    setRegisteredUsers((current) => [...current, newUser]);
     setRegisteredUser(newUser);
     setLogin({ email: newUser.email, password: '' });
     setScreen('login');
     Alert.alert('Cadastro concluído', 'Agora você pode entrar com o e-mail e senha cadastrados.');
-    setSignup({ name: '', email: '', birthDate: '', password: '' });
+    setSignup({ name: '', cpf: '', email: '', birthDate: '', password: '' });
   };
 
   const handleLogin = () => {
@@ -167,18 +233,21 @@ export default function App() {
       return;
     }
 
-    if (!registeredUser) {
+    const userFound = registeredUsers.find((user) => user.email === typedEmail);
+
+    if (!userFound) {
       Alert.alert('Cadastro não encontrado', 'Crie uma conta antes de fazer o login.');
       return;
     }
 
-    if (typedEmail !== registeredUser.email || typedPassword !== registeredUser.password) {
+    if (typedPassword !== userFound.password) {
       Alert.alert('Credenciais inválidas', 'E-mail ou senha incorretos.');
       return;
     }
 
+    setRegisteredUser(userFound);
     setScreen('home');
-    Alert.alert('Bem-vindo(a)', `Olá, ${registeredUser.name}!`);
+    Alert.alert('Bem-vindo(a)', `Olá, ${userFound.name}!`);
   };
 
   const handleSendMessage = () => {
@@ -271,6 +340,17 @@ export default function App() {
           onChangeText={(text) => setSignup((current) => ({ ...current, name: text }))}
         />
 
+        <Text style={styles.label}>CPF</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="000.000.000-00"
+          keyboardType="numeric"
+          maxLength={14}
+          value={signup.cpf}
+          onChangeText={(text) => setSignup((current) => ({ ...current, cpf: formatCpf(text) }))}
+        />
+        {signup.cpf.trim() ? <Text style={styles.fieldError}>{cpfError || 'CPF válido.'}</Text> : null}
+
         <Text style={styles.label}>E-mail</Text>
         <TextInput
           style={styles.input}
@@ -280,6 +360,7 @@ export default function App() {
           value={signup.email}
           onChangeText={(text) => setSignup((current) => ({ ...current, email: text }))}
         />
+        {signup.email.trim() ? <Text style={styles.fieldError}>{emailError || 'E-mail válido.'}</Text> : null}
 
         <Text style={styles.label}>Data de Nascimento</Text>
         <TextInput
@@ -703,6 +784,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 8,
     lineHeight: 18,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: '#DC2626',
+    marginTop: 6,
+    marginBottom: 4,
   },
   primaryButton: {
     marginTop: 22,
