@@ -101,6 +101,8 @@ export default function App() {
     password: '',
   });
   const [login, setLogin] = useState({ email: '', password: '' });
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [filters, setFilters] = useState({
     size: 'Todos',
     energy: 'Todos',
@@ -227,13 +229,21 @@ export default function App() {
         />
 
         <Text style={styles.label}>Senha</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Sua senha"
-          secureTextEntry
-          value={login.password}
-          onChangeText={(text) => setLogin((current) => ({ ...current, password: text }))}
-        />
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Sua senha"
+            secureTextEntry={!showLoginPassword}
+            value={login.password}
+            onChangeText={(text) => setLogin((current) => ({ ...current, password: text }))}
+          />
+          <Pressable
+            style={styles.togglePasswordButton}
+            onPress={() => setShowLoginPassword((current) => !current)}
+          >
+            <Text style={styles.togglePasswordText}>{showLoginPassword ? 'Ocultar' : 'Mostrar'}</Text>
+          </Pressable>
+        </View>
 
         <Pressable style={[styles.primaryButton, { width: '100%' }]} onPress={handleLogin}>
           <Text style={styles.primaryButtonText}>Entrar</Text>
@@ -284,13 +294,21 @@ export default function App() {
         />
 
         <Text style={styles.label}>Senha</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Crie uma senha"
-          secureTextEntry
-          value={signup.password}
-          onChangeText={(text) => setSignup((current) => ({ ...current, password: text }))}
-        />
+        <View style={styles.passwordWrapper}>
+          <TextInput
+            style={[styles.input, styles.passwordInput]}
+            placeholder="Crie uma senha"
+            secureTextEntry={!showSignupPassword}
+            value={signup.password}
+            onChangeText={(text) => setSignup((current) => ({ ...current, password: text }))}
+          />
+          <Pressable
+            style={styles.togglePasswordButton}
+            onPress={() => setShowSignupPassword((current) => !current)}
+          >
+            <Text style={styles.togglePasswordText}>{showSignupPassword ? 'Ocultar' : 'Mostrar'}</Text>
+          </Pressable>
+        </View>
         <Text style={styles.helperText}>
           Mínimo de 8 caracteres, com pelo menos uma letra maiúscula e um caractere especial.
         </Text>
@@ -661,6 +679,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
+  },
+  passwordWrapper: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 92,
+  },
+  togglePasswordButton: {
+    position: 'absolute',
+    right: 12,
+    top: 11,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  togglePasswordText: {
+    color: '#F97316',
+    fontWeight: '700',
+    fontSize: 12,
   },
   helperText: {
     fontSize: 12,
