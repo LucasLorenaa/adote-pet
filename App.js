@@ -99,7 +99,10 @@ export default function App() {
     size: 'Todos',
     energy: 'Todos',
     kids: 'Todos',
+    favoritesOnly: false,
   });
+  const [favorites, setFavorites] = useState([]);
+  const [activeTab, setActiveTab] = useState('home');
   const [messageText, setMessageText] = useState('');
   const [chatMessages, setChatMessages] = useState(DEFAULT_CHAT);
 
@@ -111,10 +114,11 @@ export default function App() {
         filters.kids === 'Todos' ||
         (filters.kids === 'Sim' && pet.kids) ||
         (filters.kids === 'Não' && !pet.kids);
+      const matchesFavorites = !filters.favoritesOnly || favorites.includes(pet.id);
 
-      return matchesSize && matchesEnergy && matchesKids;
+      return matchesSize && matchesEnergy && matchesKids && matchesFavorites;
     });
-  }, [filters]);
+  }, [filters, favorites]);
 
   const handleSignup = () => {
     const { name, email, birthDate, password } = signup;
@@ -182,6 +186,16 @@ export default function App() {
 
     setChatMessages((current) => [...current, newMessage]);
     setMessageText('');
+  };
+
+  const toggleFavorite = (petId) => {
+    setFavorites((current) =>
+      current.includes(petId) ? current.filter((item) => item !== petId) : [...current, petId]
+    );
+  };
+
+  const handleAdopt = () => {
+    Alert.alert('Adoção iniciada', `Você demonstrou interesse em ${selectedPet.name}. A ONG entrará em contato em breve.`);
   };
 
   const renderLoginScreen = () => (
@@ -300,6 +314,26 @@ export default function App() {
         </Pressable>
       </View>
 
+      <View style={styles.tabBar}>
+        {[
+          { key: 'home', label: 'Home' },
+          { key: 'profile', label: 'Perfil' },
+        ].map((tab) => (
+          <Pressable
+            key={tab.key}
+            style={[styles.tabButton, activeTab === tab.key && styles.tabButtonActive]}
+            onPress={() => {
+              setActiveTab(tab.key);
+              if (tab.key === 'profile') {
+                setScreen('profile');
+              }
+            }}
+          >
+            <Text style={[styles.tabButtonText, activeTab === tab.key && styles.tabButtonTextActive]}>{tab.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <View style={styles.filterCard}>
         <Text style={styles.filterTitle}>Filtros avançados</Text>
 
@@ -347,6 +381,18 @@ export default function App() {
             ))}
           </View>
         </View>
+
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Favoritos</Text>
+          <Pressable
+            style={[styles.favoriteFilterButton, favorites.length > 0 && styles.favoriteFilterButtonActive]}
+            onPress={() => setFilters((current) => ({ ...current, favoritesOnly: !current.favoritesOnly }))}
+          >
+            <Text style={[styles.favoriteFilterButtonText, favorites.length > 0 && styles.favoriteFilterButtonTextActive]}>
+              {filters.favoritesOnly ? 'Exibindo favoritos' : 'Mostrar apenas favoritos'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.petList}>
@@ -357,33 +403,105 @@ export default function App() {
           </View>
         ) : (
           filteredPets.map((pet) => (
-            <Pressable
-              key={pet.id}
-              style={styles.petCard}
-              onPress={() => {
-                setSelectedPet(pet);
-                setScreen('chat');
-              }}
-            >
-              <View style={styles.petHeader}>
-                <Text style={styles.petEmoji}>{pet.emoji}</Text>
-                <View style={styles.petIdentity}>
-                  <Text style={styles.petName}>{pet.name}</Text>
-                  <Text style={styles.petMeta}>{pet.type} • {pet.age}</Text>
+            <View key={pet.id} style={styles.petCard}>
+              <Pressable
+                onPress={() => {
+                  setSelectedPet(pet);
+                  setScreen('details');
+                }}
+              >
+                <View style={styles.petHeader}>
+                  <Text style={styles.petEmoji}>{pet.emoji}</Text>
+                  <View style={styles.petIdentity}>
+                    <Text style={styles.petName}>{pet.name}</Text>
+                    <Text style={styles.petMeta}>{pet.type} • {pet.age}</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.tagRow}>
-                <Text style={styles.tag}>{pet.size}</Text>
-                <Text style={styles.tag}>{pet.energy}</Text>
-                <Text style={styles.tag}>{pet.kids ? 'Amigável com crianças' : 'Mais reservado'}</Text>
-              </View>
+                <View style={styles.tagRow}>
+                  <Text style={styles.tag}>{pet.size}</Text>
+                  <Text style={styles.tag}>{pet.energy}</Text>
+                  <Text style={styles.tag}>{pet.kids ? 'Amigável com crianças' : 'Mais reservado'}</Text>
+                </View>
 
-              <Text style={styles.petDescription}>{pet.description}</Text>
-              <Text style={styles.ngoText}>{pet.ngo}</Text>
-            </Pressable>
+                <Text style={styles.petDescription}>{pet.description}</Text>
+                <Text style={styles.ngoText}>{pet.ngo}</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.favoriteButton, favorites.includes(pet.id) && styles.favoriteButtonActive]}
+                onPress={() => toggleFavorite(pet.id)}
+              >
+                <Text style={[styles.favoriteButtonText, favorites.includes(pet.id) && styles.favoriteButtonTextActive]}>
+                  {favorites.includes(pet.id) ? '★ Favoritado' : '☆ Favoritar'}
+                </Text>
+              </Pressable>
+            </View>
           ))
         )}
+      </View>
+    </ScrollView>
+  );
+
+  const renderProfileScreen = () => (
+    <View style={styles.profileContainer}>
+      <View style={styles.profileHeader}>
+        <Pressable onPress={() => setScreen('home')}>
+          <Text style={styles.backText}>← Voltar</Text>
+        </Pressable>
+        <Text style={styles.profileTitle}>Meu perfil</Text>
+      </View>
+
+      <View style={styles.profileCard}>
+        <Text style={styles.profileAvatar}>{registeredUser?.name?.charAt(0)?.toUpperCase() || 'U'}</Text>
+        <Text style={styles.profileName}>{registeredUser?.name || 'Usuário'}</Text>
+        <Text style={styles.profileEmail}>{registeredUser?.email || 'email@exemplo.com'}</Text>
+        <Text style={styles.profileInfo}>Data de nascimento: {registeredUser?.birthDate || 'Não informada'}</Text>
+      </View>
+
+    </View>
+  );
+
+  const renderDetailScreen = () => (
+    <ScrollView style={styles.detailContainer} contentContainerStyle={styles.detailContent}>
+      <View style={styles.detailHeader}>
+        <Pressable onPress={() => setScreen('home')}>
+          <Text style={styles.backText}>← Voltar</Text>
+        </Pressable>
+        <Text style={styles.detailTitle}>Detalhes do pet</Text>
+      </View>
+
+      <View style={styles.detailCard}>
+        <Text style={styles.detailEmoji}>{selectedPet.emoji}</Text>
+        <Text style={styles.detailName}>{selectedPet.name}</Text>
+        <Text style={styles.detailMeta}>{selectedPet.type} • {selectedPet.age}</Text>
+
+        <View style={styles.tagRow}>
+          <Text style={styles.tag}>{selectedPet.size}</Text>
+          <Text style={styles.tag}>{selectedPet.energy}</Text>
+          <Text style={styles.tag}>{selectedPet.kids ? 'Com crianças' : 'Mais reservado'}</Text>
+        </View>
+
+        <Text style={styles.detailDescription}>{selectedPet.description}</Text>
+
+        <View style={styles.infoGrid}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>ONG</Text>
+            <Text style={styles.infoValue}>{selectedPet.ngo}</Text>
+          </View>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Perfil</Text>
+            <Text style={styles.infoValue}>{selectedPet.kids ? 'Muito sociável' : 'Mais calma'}</Text>
+          </View>
+        </View>
+
+        <Pressable style={styles.primaryButton} onPress={handleAdopt}>
+          <Text style={styles.primaryButtonText}>Quero adotar</Text>
+        </Pressable>
+
+        <Pressable style={styles.secondaryAdoptButton} onPress={() => setScreen('chat')}>
+          <Text style={styles.secondaryAdoptButtonText}>Conversar com a ONG</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -391,7 +509,7 @@ export default function App() {
   const renderChatScreen = () => (
     <View style={styles.chatScreen}>
       <View style={styles.chatHeader}>
-        <Pressable onPress={() => setScreen('home')}>
+        <Pressable onPress={() => setScreen('details')}>
           <Text style={styles.backText}>← Voltar</Text>
         </Pressable>
         <View style={styles.chatTitleWrap}>
@@ -434,6 +552,14 @@ export default function App() {
 
   if (screen === 'home') {
     return renderHomeScreen();
+  }
+
+  if (screen === 'profile') {
+    return renderProfileScreen();
+  }
+
+  if (screen === 'details') {
+    return renderDetailScreen();
   }
 
   if (screen === 'chat') {
@@ -583,6 +709,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#7C2D12',
   },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 6,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: '#F97316',
+  },
+  tabButtonText: {
+    color: '#374151',
+    fontWeight: '700',
+  },
+  tabButtonTextActive: {
+    color: '#FFFFFF',
+  },
   filterCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -692,6 +841,26 @@ const styles = StyleSheet.create({
     color: '#F97316',
     fontWeight: '700',
   },
+  favoriteButton: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#FDE68A',
+    borderColor: '#FBBF24',
+  },
+  favoriteButtonText: {
+    color: '#9A5B1D',
+    fontWeight: '700',
+  },
+  favoriteButtonTextActive: {
+    color: '#7C2D12',
+  },
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -707,6 +876,156 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  detailContainer: {
+    flex: 1,
+    backgroundColor: '#FFF8F3',
+  },
+  detailContent: {
+    padding: 20,
+    paddingBottom: 32,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  detailTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  detailCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  detailEmoji: {
+    fontSize: 72,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  detailName: {
+    textAlign: 'center',
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  detailMeta: {
+    textAlign: 'center',
+    color: '#6B7280',
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  detailDescription: {
+    color: '#374151',
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 12,
+    marginBottom: 18,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  infoBox: {
+    flex: 1,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    padding: 12,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#9A5B1D',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  infoValue: {
+    color: '#111827',
+    fontWeight: '700',
+  },
+  secondaryAdoptButton: {
+    marginTop: 10,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  secondaryAdoptButtonText: {
+    color: '#374151',
+    fontWeight: '700',
+  },
+  profileContainer: {
+    flex: 1,
+    backgroundColor: '#FFF8F3',
+    padding: 20,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  profileTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FDE68A',
+    color: '#7C2D12',
+    fontSize: 28,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 72,
+    marginBottom: 12,
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  profileEmail: {
+    color: '#6B7280',
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  profileInfo: {
+    color: '#374151',
+    fontWeight: '600',
+  },
+  favoriteFilterButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  favoriteFilterButtonActive: {
+    backgroundColor: '#FDE68A',
+  },
+  favoriteFilterButtonText: {
+    color: '#374151',
+    fontWeight: '700',
+  },
+  favoriteFilterButtonTextActive: {
+    color: '#7C2D12',
   },
   chatScreen: {
     flex: 1,
