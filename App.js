@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 const PETS = [
@@ -85,6 +86,11 @@ const formatBirthDate = (value) => {
 const isStrongPassword = (password) => /^(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}).+$/.test(password);
 
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
+  const isVeryCompact = width < 320;
+  const safeTopPadding = Platform.OS === 'ios' ? 44 : 18;
+
   const [screen, setScreen] = useState('login');
   const [selectedPet, setSelectedPet] = useState(PETS[0]);
   const [registeredUser, setRegisteredUser] = useState(null);
@@ -201,14 +207,14 @@ export default function App() {
   const renderLoginScreen = () => (
     <View style={styles.screenContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8F3" />
-      <View style={styles.logoCard}>
-        <Text style={styles.logoEmoji}>🐾</Text>
-        <Text style={styles.brand}>Adote um Bichinho</Text>
-        <Text style={styles.subtitle}>Encontre seu melhor amigo</Text>
+      <View style={[styles.logoCard, { marginBottom: isCompact ? 12 : 20 }]}>
+        <Text style={[styles.logoEmoji, { fontSize: isCompact ? 42 : 52 } ]}>🐾</Text>
+        <Text style={[styles.brand, { fontSize: isCompact ? 24 : 28 } ]}>Adote um Bichinho</Text>
+        <Text style={[styles.subtitle, { fontSize: isCompact ? 13 : 15 } ]}>Encontre seu melhor amigo</Text>
       </View>
 
-      <View style={styles.formCard}>
-        <Text style={styles.title}>Login</Text>
+      <View style={[styles.formCard, { padding: isCompact ? 18 : 24 }]}>
+        <Text style={[styles.title, { fontSize: isCompact ? 24 : 28 } ]}>Login</Text>
 
         <Text style={styles.label}>E-mail</Text>
         <TextInput
@@ -229,7 +235,7 @@ export default function App() {
           onChangeText={(text) => setLogin((current) => ({ ...current, password: text }))}
         />
 
-        <Pressable style={styles.primaryButton} onPress={handleLogin}>
+        <Pressable style={[styles.primaryButton, { width: '100%' }]} onPress={handleLogin}>
           <Text style={styles.primaryButtonText}>Entrar</Text>
         </Pressable>
 
@@ -244,8 +250,8 @@ export default function App() {
 
   const renderRegisterScreen = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.registerCard}>
-        <Text style={styles.title}>Cadastro</Text>
+      <View style={[styles.registerCard, { padding: isCompact ? 18 : 24 }]}>
+        <Text style={[styles.title, { fontSize: isCompact ? 24 : 28 } ]}>Cadastro</Text>
 
         <Text style={styles.label}>Nome Completo</Text>
         <TextInput
@@ -289,7 +295,7 @@ export default function App() {
           Mínimo de 8 caracteres, com pelo menos uma letra maiúscula e um caractere especial.
         </Text>
 
-        <Pressable style={styles.primaryButton} onPress={handleSignup}>
+        <Pressable style={[styles.primaryButton, { width: '100%' }]} onPress={handleSignup}>
           <Text style={styles.primaryButtonText}>Cadastrar</Text>
         </Pressable>
 
@@ -304,17 +310,17 @@ export default function App() {
 
   const renderHomeScreen = () => (
     <ScrollView style={styles.homeContainer} contentContainerStyle={styles.homeContent}>
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.greeting}>Olá, {registeredUser?.name?.split(' ')[0] || 'Amigo'}!</Text>
-          <Text style={styles.headerTitle}>Encontre o pet ideal</Text>
+      <View style={[styles.headerRow, { marginBottom: isCompact ? 12 : 18 }]}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={[styles.greeting, { fontSize: isCompact ? 14 : 16 } ]}>Olá, {registeredUser?.name?.split(' ')[0] || 'Amigo'}!</Text>
+          <Text style={[styles.headerTitle, { fontSize: isCompact ? 22 : 28 } ]}>Encontre o pet ideal</Text>
         </View>
         <Pressable style={styles.avatarButton} onPress={() => setScreen('login')}>
           <Text style={styles.avatarText}>Sair</Text>
         </Pressable>
       </View>
 
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { marginBottom: isCompact ? 12 : 16 }]}>
         {[
           { key: 'home', label: 'Home' },
           { key: 'profile', label: 'Perfil' },
@@ -334,7 +340,7 @@ export default function App() {
         ))}
       </View>
 
-      <View style={styles.filterCard}>
+      <View style={[styles.filterCard, { padding: isCompact ? 14 : 18 }]}>
         <Text style={styles.filterTitle}>Filtros avançados</Text>
 
         <View style={styles.filterRow}>
@@ -385,7 +391,11 @@ export default function App() {
         <View style={styles.filterRow}>
           <Text style={styles.filterLabel}>Favoritos</Text>
           <Pressable
-            style={[styles.favoriteFilterButton, favorites.length > 0 && styles.favoriteFilterButtonActive]}
+            style={[
+              styles.favoriteFilterButton,
+              { width: '100%' },
+              favorites.length > 0 && styles.favoriteFilterButtonActive,
+            ]}
             onPress={() => setFilters((current) => ({ ...current, favoritesOnly: !current.favoritesOnly }))}
           >
             <Text style={[styles.favoriteFilterButtonText, favorites.length > 0 && styles.favoriteFilterButtonTextActive]}>
@@ -403,7 +413,7 @@ export default function App() {
           </View>
         ) : (
           filteredPets.map((pet) => (
-            <View key={pet.id} style={styles.petCard}>
+            <View key={pet.id} style={[styles.petCard, { padding: isCompact ? 14 : 18, marginBottom: isCompact ? 10 : 14 }]}>
               <Pressable
                 onPress={() => {
                   setSelectedPet(pet);
@@ -445,8 +455,8 @@ export default function App() {
 
   const renderProfileScreen = () => (
     <View style={styles.profileContainer}>
-      <View style={styles.profileHeader}>
-        <Pressable onPress={() => setScreen('home')}>
+      <View style={[styles.profileHeader, { paddingTop: safeTopPadding }]}> 
+        <Pressable style={styles.backButton} onPress={() => setScreen('home')}>
           <Text style={styles.backText}>← Voltar</Text>
         </Pressable>
         <Text style={styles.profileTitle}>Meu perfil</Text>
@@ -464,16 +474,16 @@ export default function App() {
 
   const renderDetailScreen = () => (
     <ScrollView style={styles.detailContainer} contentContainerStyle={styles.detailContent}>
-      <View style={styles.detailHeader}>
-        <Pressable onPress={() => setScreen('home')}>
+      <View style={[styles.detailHeader, { paddingTop: safeTopPadding }]}> 
+        <Pressable style={styles.backButton} onPress={() => setScreen('home')}>
           <Text style={styles.backText}>← Voltar</Text>
         </Pressable>
         <Text style={styles.detailTitle}>Detalhes do pet</Text>
       </View>
 
-      <View style={styles.detailCard}>
-        <Text style={styles.detailEmoji}>{selectedPet.emoji}</Text>
-        <Text style={styles.detailName}>{selectedPet.name}</Text>
+      <View style={[styles.detailCard, { padding: isCompact ? 16 : 20 }]}>
+        <Text style={[styles.detailEmoji, { fontSize: isCompact ? 58 : 72 }]}>{selectedPet.emoji}</Text>
+        <Text style={[styles.detailName, { fontSize: isCompact ? 24 : 30 }]}>{selectedPet.name}</Text>
         <Text style={styles.detailMeta}>{selectedPet.type} • {selectedPet.age}</Text>
 
         <View style={styles.tagRow}>
@@ -495,11 +505,11 @@ export default function App() {
           </View>
         </View>
 
-        <Pressable style={styles.primaryButton} onPress={handleAdopt}>
+        <Pressable style={[styles.primaryButton, { width: '100%' }]} onPress={handleAdopt}>
           <Text style={styles.primaryButtonText}>Quero adotar</Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryAdoptButton} onPress={() => setScreen('chat')}>
+        <Pressable style={[styles.secondaryAdoptButton, { width: '100%' }]} onPress={() => setScreen('chat')}>
           <Text style={styles.secondaryAdoptButtonText}>Conversar com a ONG</Text>
         </Pressable>
       </View>
@@ -508,8 +518,8 @@ export default function App() {
 
   const renderChatScreen = () => (
     <View style={styles.chatScreen}>
-      <View style={styles.chatHeader}>
-        <Pressable onPress={() => setScreen('details')}>
+      <View style={[styles.chatHeader, { paddingTop: safeTopPadding }]}> 
+        <Pressable style={styles.backButton} onPress={() => setScreen('details')}>
           <Text style={styles.backText}>← Voltar</Text>
         </Pressable>
         <View style={styles.chatTitleWrap}>
@@ -576,11 +586,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    paddingTop: 28,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    paddingTop: 28,
     backgroundColor: '#FFF8F3',
   },
   logoCard: {
@@ -604,6 +616,7 @@ const styles = StyleSheet.create({
   formCard: {
     width: '100%',
     maxWidth: 420,
+    alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
@@ -616,6 +629,7 @@ const styles = StyleSheet.create({
   registerCard: {
     width: '100%',
     maxWidth: 420,
+    alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
@@ -659,12 +673,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F97316',
     borderRadius: 12,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    width: '100%',
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
+    textAlign: 'center',
   },
   secondaryText: {
     marginTop: 18,
@@ -681,6 +698,7 @@ const styles = StyleSheet.create({
   },
   homeContent: {
     padding: 20,
+    paddingTop: 28,
     paddingBottom: 40,
   },
   headerRow: {
@@ -693,17 +711,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#F97316',
     fontWeight: '700',
+    flexShrink: 1,
   },
   headerTitle: {
     fontSize: 28,
     color: '#1F2937',
     fontWeight: '800',
+    flexShrink: 1,
   },
   avatarButton: {
     backgroundColor: '#FDE68A',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    flexShrink: 0,
   },
   avatarText: {
     fontWeight: '700',
@@ -761,7 +782,6 @@ const styles = StyleSheet.create({
   chipGroup: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   chip: {
     paddingHorizontal: 12,
@@ -770,6 +790,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     marginRight: 8,
     marginBottom: 8,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   chipSelected: {
     backgroundColor: '#FDBA74',
@@ -783,7 +805,7 @@ const styles = StyleSheet.create({
     color: '#7C2D12',
   },
   petList: {
-    gap: 14,
+    width: '100%',
   },
   petCard: {
     backgroundColor: '#FFFFFF',
@@ -794,6 +816,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+    width: '100%',
   },
   petHeader: {
     flexDirection: 'row',
@@ -883,6 +906,7 @@ const styles = StyleSheet.create({
   },
   detailContent: {
     padding: 20,
+    paddingTop: 28,
     paddingBottom: 32,
   },
   detailHeader: {
@@ -890,6 +914,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
+    paddingHorizontal: 4,
   },
   detailTitle: {
     fontSize: 20,
@@ -932,14 +957,17 @@ const styles = StyleSheet.create({
   },
   infoGrid: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
     marginBottom: 20,
   },
   infoBox: {
     flex: 1,
+    minWidth: 120,
     backgroundColor: '#FFF7ED',
     borderRadius: 14,
     padding: 12,
+    marginRight: 12,
+    marginBottom: 12,
   },
   infoLabel: {
     fontSize: 12,
@@ -966,12 +994,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF8F3',
     padding: 20,
+    paddingTop: 28,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
+    paddingHorizontal: 4,
   },
   profileTitle: {
     fontSize: 22,
@@ -1015,7 +1045,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
     paddingVertical: 12,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    width: '100%',
   },
   favoriteFilterButtonActive: {
     backgroundColor: '#FDE68A',
@@ -1036,23 +1068,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingBottom: 18,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  backButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    marginLeft: -8,
+    justifyContent: 'center',
   },
   backText: {
     color: '#F97316',
     fontWeight: '700',
     fontSize: 16,
+    lineHeight: 20,
   },
   chatTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   chatEmoji: {
     fontSize: 26,
+    marginRight: 8,
   },
   chatName: {
     fontSize: 18,
@@ -1089,6 +1128,7 @@ const styles = StyleSheet.create({
   },
   chatInputRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
@@ -1104,12 +1144,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 10,
     backgroundColor: '#F9FAFB',
+    minWidth: 0,
   },
   sendButton: {
     backgroundColor: '#F97316',
     borderRadius: 12,
     paddingHorizontal: 16,
+    paddingVertical: 10,
     justifyContent: 'center',
+    flexShrink: 0,
   },
   sendButtonText: {
     color: '#FFFFFF',
