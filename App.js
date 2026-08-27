@@ -69,6 +69,17 @@ const DEFAULT_CHAT = [
   { id: 3, sender: 'ong', text: 'Perfeito! O Luna combina muito com esse perfil.' },
 ];
 
+const INITIAL_CONVERSATIONS = {
+  1: {
+    id: 1,
+    petId: 1,
+    petName: 'Luna',
+    petEmoji: '🐶',
+    ngo: 'Amigos Peludos',
+    messages: DEFAULT_CHAT,
+  },
+};
+
 const formatBirthDate = (value) => {
   const digitsOnly = value.replace(/\D/g, '').slice(0, 8);
 
@@ -83,26 +94,6 @@ const formatBirthDate = (value) => {
   return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2, 4)}/${digitsOnly.slice(4)}`;
 };
 
-const formatCpf = (value) => {
-  const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
-
-  if (digitsOnly.length <= 3) {
-    return digitsOnly;
-  }
-
-  if (digitsOnly.length <= 6) {
-    return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3)}`;
-  }
-
-  if (digitsOnly.length <= 9) {
-    return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3, 6)}.${digitsOnly.slice(6)}`;
-  }
-
-  return `${digitsOnly.slice(0, 3)}.${digitsOnly.slice(3, 6)}.${digitsOnly.slice(6, 9)}-${digitsOnly.slice(9)}`;
-};
-
-const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
 const isStrongPassword = (password) => /^(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}).+$/.test(password);
 
 export default function App() {
@@ -114,10 +105,8 @@ export default function App() {
   const [screen, setScreen] = useState('login');
   const [selectedPet, setSelectedPet] = useState(PETS[0]);
   const [registeredUser, setRegisteredUser] = useState(null);
-  const [registeredUsers, setRegisteredUsers] = useState([]);
   const [signup, setSignup] = useState({
     name: '',
-    cpf: '',
     email: '',
     birthDate: '',
     password: '',
@@ -134,7 +123,7 @@ export default function App() {
   const [favorites, setFavorites] = useState([]);
   const [activeTab, setActiveTab] = useState('home');
   const [messageText, setMessageText] = useState('');
-  const [chatMessages, setChatMessages] = useState(DEFAULT_CHAT);
+  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
 
   const filteredPets = useMemo(() => {
     return PETS.filter((pet) => {
@@ -150,38 +139,11 @@ export default function App() {
     });
   }, [filters, favorites]);
 
-  const emailError =
-    !signup.email.trim()
-      ? ''
-      : !isValidEmail(signup.email)
-        ? 'Informe um e-mail válido.'
-        : registeredUsers.some((user) => user.email === signup.email.trim().toLowerCase())
-          ? 'Este e-mail já está cadastrado.'
-          : '';
-
-  const cpfError =
-    !signup.cpf.trim()
-      ? ''
-      : signup.cpf.replace(/\D/g, '').length !== 11
-        ? 'CPF inválido. Informe 11 dígitos.'
-        : registeredUsers.some((user) => user.cpf === signup.cpf.replace(/\D/g, ''))
-          ? 'Este CPF já está cadastrado.'
-          : '';
-
-  const hasSignupErrors = Boolean(emailError || cpfError);
-
   const handleSignup = () => {
-    const { name, cpf, email, birthDate, password } = signup;
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedCpf = cpf.replace(/\D/g, '');
+    const { name, email, birthDate, password } = signup;
 
-    if (!name || !cpf || !email || !birthDate || !password) {
+    if (!name || !email || !birthDate || !password) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os dados do cadastro.');
-      return;
-    }
-
-    if (normalizedCpf.length !== 11) {
-      Alert.alert('CPF inválido', 'Informe um CPF com 11 dígitos.');
       return;
     }
 
@@ -193,35 +155,18 @@ export default function App() {
       return;
     }
 
-    if (registeredUsers.some((user) => user.email === normalizedEmail)) {
-      Alert.alert('E-mail já cadastrado', 'Este e-mail já está em uso por outra conta.');
-      return;
-    }
-
-    if (registeredUsers.some((user) => user.cpf === normalizedCpf)) {
-      Alert.alert('CPF já cadastrado', 'Este CPF já está em uso por outra conta.');
-      return;
-    }
-
-    if (hasSignupErrors) {
-      Alert.alert('Dados inválidos', 'Corrija os campos de e-mail e CPF antes de continuar.');
-      return;
-    }
-
     const newUser = {
       name,
-      cpf: normalizedCpf,
-      email: normalizedEmail,
+      email: email.trim().toLowerCase(),
       birthDate,
       password,
     };
 
-    setRegisteredUsers((current) => [...current, newUser]);
     setRegisteredUser(newUser);
     setLogin({ email: newUser.email, password: '' });
     setScreen('login');
     Alert.alert('Cadastro concluído', 'Agora você pode entrar com o e-mail e senha cadastrados.');
-    setSignup({ name: '', cpf: '', email: '', birthDate: '', password: '' });
+    setSignup({ name: '', email: '', birthDate: '', password: '' });
   };
 
   const handleLogin = () => {
@@ -233,25 +178,54 @@ export default function App() {
       return;
     }
 
-    const userFound = registeredUsers.find((user) => user.email === typedEmail);
-
-    if (!userFound) {
+    if (!registeredUser) {
       Alert.alert('Cadastro não encontrado', 'Crie uma conta antes de fazer o login.');
       return;
     }
 
-    if (typedPassword !== userFound.password) {
+    if (typedEmail !== registeredUser.email || typedPassword !== registeredUser.password) {
       Alert.alert('Credenciais inválidas', 'E-mail ou senha incorretos.');
       return;
     }
 
-    setRegisteredUser(userFound);
     setScreen('home');
-    Alert.alert('Bem-vindo(a)', `Olá, ${userFound.name}!`);
+    Alert.alert('Bem-vindo(a)', `Olá, ${registeredUser.name}!`);
+  };
+
+  const openChatForPet = (pet) => {
+    setSelectedPet(pet);
+
+    setConversations((current) => {
+      if (current[pet.id]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [pet.id]: {
+          id: pet.id,
+          petId: pet.id,
+          petName: pet.name,
+          petEmoji: pet.emoji,
+          ngo: pet.ngo,
+          messages: [
+            {
+              id: Date.now(),
+              sender: 'ong',
+              text: `Olá! Vi que você demonstrou interesse em ${pet.name}. Como posso te ajudar?`,
+            },
+          ],
+        },
+      };
+    });
+
+    setScreen('chat');
+    setActiveTab('chat');
+    setMessageText('');
   };
 
   const handleSendMessage = () => {
-    if (!messageText.trim()) {
+    if (!messageText.trim() || !selectedPet) {
       return;
     }
 
@@ -261,7 +235,25 @@ export default function App() {
       text: messageText.trim(),
     };
 
-    setChatMessages((current) => [...current, newMessage]);
+    setConversations((current) => {
+      const currentConversation = current[selectedPet.id] ?? {
+        id: selectedPet.id,
+        petId: selectedPet.id,
+        petName: selectedPet.name,
+        petEmoji: selectedPet.emoji,
+        ngo: selectedPet.ngo,
+        messages: [],
+      };
+
+      return {
+        ...current,
+        [selectedPet.id]: {
+          ...currentConversation,
+          messages: [...currentConversation.messages, newMessage],
+        },
+      };
+    });
+
     setMessageText('');
   };
 
@@ -273,6 +265,7 @@ export default function App() {
 
   const handleAdopt = () => {
     Alert.alert('Adoção iniciada', `Você demonstrou interesse em ${selectedPet.name}. A ONG entrará em contato em breve.`);
+    openChatForPet(selectedPet);
   };
 
   const renderLoginScreen = () => (
@@ -281,7 +274,7 @@ export default function App() {
       <View style={[styles.logoCard, { marginBottom: isCompact ? 12 : 20 }]}>
         <Text style={[styles.logoEmoji, { fontSize: isCompact ? 42 : 52 } ]}>🐾</Text>
         <Text style={[styles.brand, { fontSize: isCompact ? 24 : 28 } ]}>Adote um Bichinho</Text>
-        <Text style={[styles.subtitle, { fontSize: isCompact ? 13 : 15 } ]}>Encontre seu melhor amigo</Text>
+        <Text style={[styles.subtitle, { fontSize: isCompact ? 13 : 15 } ]}>Encontre seu melhor amigo.</Text>
       </View>
 
       <View style={[styles.formCard, { padding: isCompact ? 18 : 24 }]}>
@@ -340,17 +333,6 @@ export default function App() {
           onChangeText={(text) => setSignup((current) => ({ ...current, name: text }))}
         />
 
-        <Text style={styles.label}>CPF</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="000.000.000-00"
-          keyboardType="numeric"
-          maxLength={14}
-          value={signup.cpf}
-          onChangeText={(text) => setSignup((current) => ({ ...current, cpf: formatCpf(text) }))}
-        />
-        {signup.cpf.trim() ? <Text style={styles.fieldError}>{cpfError || 'CPF válido.'}</Text> : null}
-
         <Text style={styles.label}>E-mail</Text>
         <TextInput
           style={styles.input}
@@ -360,7 +342,6 @@ export default function App() {
           value={signup.email}
           onChangeText={(text) => setSignup((current) => ({ ...current, email: text }))}
         />
-        {signup.email.trim() ? <Text style={styles.fieldError}>{emailError || 'E-mail válido.'}</Text> : null}
 
         <Text style={styles.label}>Data de Nascimento</Text>
         <TextInput
@@ -422,6 +403,7 @@ export default function App() {
       <View style={[styles.tabBar, { marginBottom: isCompact ? 12 : 16 }]}>
         {[
           { key: 'home', label: 'Home' },
+          { key: 'chat', label: 'Chat' },
           { key: 'profile', label: 'Perfil' },
         ].map((tab) => (
           <Pressable
@@ -431,6 +413,10 @@ export default function App() {
               setActiveTab(tab.key);
               if (tab.key === 'profile') {
                 setScreen('profile');
+              } else if (tab.key === 'chat') {
+                setScreen('chatList');
+              } else {
+                setScreen('home');
               }
             }}
           >
@@ -608,52 +594,128 @@ export default function App() {
           <Text style={styles.primaryButtonText}>Quero adotar</Text>
         </Pressable>
 
-        <Pressable style={[styles.secondaryAdoptButton, { width: '100%' }]} onPress={() => setScreen('chat')}>
-          <Text style={styles.secondaryAdoptButtonText}>Conversar com a ONG</Text>
-        </Pressable>
+        {/* Botão 'Conversar com a ONG' removido para simplificar fluxo;
+            o chat agora abre automaticamente ao clicar em 'Quero adotar' */}
       </View>
     </ScrollView>
   );
 
-  const renderChatScreen = () => (
-    <View style={styles.chatScreen}>
-      <View style={[styles.chatHeader, { paddingTop: safeTopPadding }]}> 
-        <Pressable style={styles.backButton} onPress={() => setScreen('details')}>
-          <Text style={styles.backText}>← Voltar</Text>
-        </Pressable>
-        <View style={styles.chatTitleWrap}>
-          <Text style={styles.chatEmoji}>{selectedPet.emoji}</Text>
-          <Text style={styles.chatName}>{selectedPet.name}</Text>
+  const renderChatListScreen = () => {
+    const savedChats = Object.values(conversations).sort(
+      (left, right) => (right.messages[right.messages.length - 1]?.id ?? 0) - (left.messages[left.messages.length - 1]?.id ?? 0)
+    );
+
+    return (
+      <View style={styles.chatListScreen}>
+        <View style={[styles.chatListHeader, { paddingTop: safeTopPadding }]}>
+          <Pressable
+            style={styles.homeActionButton}
+            onPress={() => {
+              setActiveTab('home');
+              setScreen('home');
+            }}
+          >
+            <Text style={styles.homeActionText}>← Home</Text>
+          </Pressable>
+          <Text style={styles.detailTitle}>Chat</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <ScrollView style={styles.chatListContainer} contentContainerStyle={styles.chatListContent}>
+          {savedChats.map((conversation) => {
+            const lastMessage = conversation.messages[conversation.messages.length - 1];
+
+            return (
+              <Pressable
+                key={conversation.id}
+                style={styles.chatListItem}
+                onPress={() => {
+                  const pet = PETS.find((item) => item.id === conversation.petId) ?? {
+                    ...selectedPet,
+                    id: conversation.petId,
+                    name: conversation.petName,
+                    emoji: conversation.petEmoji,
+                    ngo: conversation.ngo,
+                  };
+                  setSelectedPet(pet);
+                  setScreen('chat');
+                  setActiveTab('chat');
+                }}
+              >
+                <Text style={styles.chatListEmoji}>{conversation.petEmoji}</Text>
+                <View style={styles.chatListInfo}>
+                  <Text style={styles.chatListName}>{conversation.petName}</Text>
+                  <Text style={styles.chatListMessage} numberOfLines={1}>
+                    {lastMessage?.text || 'Nenhuma mensagem ainda.'}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderChatScreen = () => {
+    const currentConversation = conversations[selectedPet.id] ?? {
+      id: selectedPet.id,
+      petId: selectedPet.id,
+      petName: selectedPet.name,
+      petEmoji: selectedPet.emoji,
+      ngo: selectedPet.ngo,
+      messages: [],
+    };
+
+    return (
+      <View style={styles.chatScreen}>
+        <View style={[styles.chatHeader, { paddingTop: safeTopPadding }]}> 
+          <Pressable style={styles.backButton} onPress={() => setScreen('chatList')}>
+            <Text style={styles.backText}>← Voltar</Text>
+          </Pressable>
+          <View style={styles.chatTitleWrap}>
+            <Text style={styles.chatEmoji}>{selectedPet.emoji}</Text>
+            <Text style={styles.chatName}>{selectedPet.name}</Text>
+          </View>
+          <Pressable
+            style={styles.homeActionButton}
+            onPress={() => {
+              setActiveTab('home');
+              setScreen('home');
+            }}
+          >
+            <Text style={styles.homeActionText}>Home</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
+          {currentConversation.messages.map((message) => (
+            <View
+              key={message.id}
+              style={[
+                styles.messageBubble,
+                message.sender === 'user' ? styles.userBubble : styles.ongBubble,
+              ]}
+            >
+              <Text style={styles.messageText}>{message.text}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.chatInputRow}>
+          <TextInput
+            style={styles.chatInput}
+            placeholder="Escreva sua mensagem..."
+            value={messageText}
+            onChangeText={setMessageText}
+          />
+          <Pressable style={styles.sendButton} onPress={handleSendMessage}>
+            <Text style={styles.sendButtonText}>Enviar</Text>
+          </Pressable>
         </View>
       </View>
-
-      <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
-        {chatMessages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageBubble,
-              message.sender === 'user' ? styles.userBubble : styles.ongBubble,
-            ]}
-          >
-            <Text style={styles.messageText}>{message.text}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.chatInputRow}>
-        <TextInput
-          style={styles.chatInput}
-          placeholder="Escreva sua mensagem..."
-          value={messageText}
-          onChangeText={setMessageText}
-        />
-        <Pressable style={styles.sendButton} onPress={handleSendMessage}>
-          <Text style={styles.sendButtonText}>Enviar</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+    );
+  };
 
   if (screen === 'register') {
     return renderRegisterScreen();
@@ -669,6 +731,10 @@ export default function App() {
 
   if (screen === 'details') {
     return renderDetailScreen();
+  }
+
+  if (screen === 'chatList') {
+    return renderChatListScreen();
   }
 
   if (screen === 'chat') {
@@ -784,12 +850,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 8,
     lineHeight: 18,
-  },
-  fieldError: {
-    fontSize: 12,
-    color: '#DC2626',
-    marginTop: 6,
-    marginBottom: 4,
   },
   primaryButton: {
     marginTop: 22,
@@ -1185,6 +1245,69 @@ const styles = StyleSheet.create({
   chatScreen: {
     flex: 1,
     backgroundColor: '#FFF8F3',
+  },
+  chatListScreen: {
+    flex: 1,
+    backgroundColor: '#FFF8F3',
+  },
+  chatListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    backgroundColor: '#FFF8F3',
+  },
+  homeActionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  homeActionText: {
+    color: '#F97316',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  headerSpacer: {
+    width: 52,
+  },
+  chatListContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  chatListContent: {
+    paddingBottom: 20,
+  },
+  chatListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  chatListEmoji: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  chatListInfo: {
+    flex: 1,
+  },
+  chatListName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  chatListMessage: {
+    color: '#6B7280',
+    fontSize: 13,
   },
   chatHeader: {
     flexDirection: 'row',
